@@ -182,6 +182,25 @@ public class MappingCouchbaseConverter extends AbstractCouchbaseConverter
     if (entity == null) {
       throw new MappingException("No mapping metadata found for " + rawType.getName());
     }
+
+    if (typeToUse.equals(type)) {
+      /*
+       * DATACOUCH-98
+       * There we should have encountered a case where the repository type isn't a supertype of declared stored type.
+       * It could be because the declared stored type was too vague, so we'd want to attemt to still read it.
+       * There may be corner cases like an empty object, etc... because a suitable constructor could be found, but
+       * it is the tradeoff.
+       *
+       * HOWEVER if the declared stored type isn't a supertype of repository's type either, then that means
+       * that both classes are incompatible and the read should be rejected.
+       *
+       * Let's check that:
+       */
+      TypeInformation<?> actualStoredType = typeMapper.readType(source);
+      if (actualStoredType != null && !actualStoredType.isAssignableFrom(entity.getTypeInformation())) {
+        throw new MappingException("Entity type and stored type are incompatible: " + entity.getName() + " vs " + actualStoredType.getType().getName());
+      }
+    }
     return read(entity, source, parent);
   }
 

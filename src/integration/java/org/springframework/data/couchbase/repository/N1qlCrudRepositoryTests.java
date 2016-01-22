@@ -16,26 +16,25 @@
 
 package org.springframework.data.couchbase.repository;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
 import java.util.Date;
 import java.util.List;
 
 import com.couchbase.client.java.Bucket;
-import com.couchbase.client.java.error.DocumentDoesNotExistException;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataRetrievalFailureException;
 import org.springframework.data.couchbase.IntegrationTestApplicationConfig;
 import org.springframework.data.couchbase.repository.config.RepositoryOperationsMapping;
 import org.springframework.data.couchbase.repository.support.CouchbaseRepositoryFactory;
 import org.springframework.data.couchbase.repository.support.IndexManager;
 import org.springframework.data.geo.Point;
+import org.springframework.data.mapping.model.MappingException;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
@@ -76,9 +75,9 @@ public class N1qlCrudRepositoryTests {
 
   @After
   public void cleanUp() {
-    try { itemRepository.delete(KEY_ITEM); } catch (DocumentDoesNotExistException e) {}
-    try { partyRepository.delete(KEY_PARTY); } catch (DocumentDoesNotExistException e) {}
-    try { partyRepository.delete(KEY_PARTY_KEYWORD); } catch (DocumentDoesNotExistException e) {}
+    try { itemRepository.delete(KEY_ITEM); } catch (DataRetrievalFailureException e) {}
+    try { partyRepository.delete(KEY_PARTY); } catch (DataRetrievalFailureException e) {}
+    try { partyRepository.delete(KEY_PARTY_KEYWORD); } catch (DataRetrievalFailureException e) {}
   }
 
   @Test
@@ -91,6 +90,11 @@ public class N1qlCrudRepositoryTests {
 
     assertFalse(items.contains(party));
     assertFalse(parties.contains(item));
+  }
+
+  @Test(expected = MappingException.class)
+  public void shouldNotFindAnItemAsAParty() {
+    partyRepository.findOne(KEY_ITEM);
   }
 
   @Test

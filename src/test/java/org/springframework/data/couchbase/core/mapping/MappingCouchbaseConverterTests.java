@@ -501,6 +501,48 @@ public class MappingCouchbaseConverterTests {
     assertEquals("springId", converted.getId());
   }
 
+  /**
+   * @see DATACOUCH-98
+   */
+  @Test
+  public void shouldCorrectlyReadSubClass() {
+    StringEntity stored = new StringEntity("value");
+    CouchbaseDocument storedDoc = new CouchbaseDocument();
+    converter.write(stored, storedDoc);
+
+    BaseEntity read = converter.read(BaseEntity.class, storedDoc);
+    assertNotNull(read);
+    assertTrue(read instanceof StringEntity);
+    assertEquals(stored.attr0, ((StringEntity) read).attr0);
+  }
+
+  /**
+   * @see DATACOUCH-98
+   */
+  @Test
+  public void shouldAttemptInstantiationOfSubClassWhenStoredClassIsSuperClass() {
+    BaseEntity stored = new BaseEntity();
+    CouchbaseDocument storedDoc = new CouchbaseDocument();
+    converter.write(stored, storedDoc);
+
+    StringEntity read = converter.read(StringEntity.class, storedDoc);
+    assertNotNull(read);
+    assertEquals(null, read.attr0);
+  }
+
+  /**
+   * @see DATACOUCH-98
+   */
+  @Test(expected = MappingException.class)
+  public void shouldRefuseIncompatibleTypes() {
+    NotABaseEntity stored = new NotABaseEntity("test");
+    CouchbaseDocument storedDoc = new CouchbaseDocument();
+    converter.write(stored, storedDoc);
+
+    //this fails
+    converter.read(StringEntity.class, storedDoc);
+  }
+
 
   static class EntityWithoutID {
     private String attr0;
@@ -508,6 +550,15 @@ public class MappingCouchbaseConverterTests {
     public EntityWithoutID(String a0) {
       attr0 = a0;
     }
+  }
+
+  static class NotABaseEntity {
+    @Id
+    private String id = "commonId";
+
+    private String value;
+
+    public NotABaseEntity(String v) { this.value = v; }
   }
 
   static class BaseEntity {
